@@ -1,0 +1,7 @@
+{
+  "name": "FluentAI Assessment",
+  "description": "Professional Spoken English Proficiency Assessment platform using Gemini Live API for real-time conversation and deep analysis.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
