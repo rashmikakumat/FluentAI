@@ -3,7 +3,8 @@ import { ANALYSIS_SYSTEM_PROMPT } from "../constants";
 import { AssessmentReport, FeedbackMetric } from "../types";
 import { blobToBase64 } from "../utils/audioUtils";
 
-const apiKey = process.env.API_KEY || '';
+//const apiKey = process.env.API_KEY || '';
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || ''
 const ai = new GoogleGenAI({ apiKey });
 
 // Helper to ensure metric exists and has defaults
