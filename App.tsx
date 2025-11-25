@@ -52,9 +52,6 @@ const App: React.FC = () => {
              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">F</div>
              <span className="font-bold text-lg tracking-tight">FluentAI</span>
           </div>
-          <div className="text-sm text-slate-500 font-medium hidden md:block">
-            Production Grade Assessment
-          </div>
         </div>
       </nav>
 
@@ -74,10 +71,10 @@ const App: React.FC = () => {
               <div className="md:col-span-7 space-y-8">
                 <div>
                    <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight leading-tight">
-                     Master Spoken English with <span className="text-blue-600">Real-time AI</span>
+                     Speak Confidently with a <span className="text-blue-600">Live AI Coach</span>
                    </h1>
                    <p className="text-lg text-slate-600 leading-relaxed">
-                     Get assessed on CEFR standards. Practice extempore or have realistic conversations. Receive instant, actionable feedback on pronunciation, grammar, and fluency.
+                     Practice extempore or natural conversations, get CEFR-aligned scores, and hear instant coaching on pronunciation, grammar, and fluency—so you can sound confident in every situation.
                    </p>
                 </div>
 
