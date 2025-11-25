@@ -29,7 +29,8 @@ const SessionManager: React.FC<Props> = ({ mode, topic, onComplete, onCancel, on
   const audioChunksRef = useRef<Blob[]>([]);
   
   // Live API specific refs
-  const liveSessionRef = useRef<any>(null); // To store session object
+  const liveSessionRef = useRef<Promise<any> | null>(null); // To store session promise
+  const liveOpenRef = useRef(false);
   const outputSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const nextAudioStartTimeRef = useRef<number>(0);
   
@@ -72,10 +73,16 @@ const SessionManager: React.FC<Props> = ({ mode, topic, onComplete, onCancel, on
     if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
         inputAudioContextRef.current.close();
     }
+    liveOpenRef.current = false;
     if (liveSessionRef.current) {
-        // Close session if method exists, though library handles disconnect on garbage collect typically
-        // Explicit close isn't always available on the session object depending on version, but we drop reference
+        liveSessionRef.current.then((session: any) => {
+            if (session?.close) session.close();
+        }).catch(() => {});
         liveSessionRef.current = null; 
+    }
+    if (scriptProcessorRef.current) {
+        try { scriptProcessorRef.current.disconnect(); } catch {}
+        scriptProcessorRef.current = null;
     }
   };
 
@@ -150,7 +157,7 @@ const SessionManager: React.FC<Props> = ({ mode, topic, onComplete, onCancel, on
     const source = inputAudioCtx.createMediaStreamSource(stream);
     const processor = inputAudioCtx.createScriptProcessor(4096, 1, 1);
     
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
     
     const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -158,6 +165,7 @@ const SessionManager: React.FC<Props> = ({ mode, topic, onComplete, onCancel, on
             onopen: () => {
                 console.log("Live Session Open");
                 setStatus(SessionStatus.IN_PROGRESS);
+                liveOpenRef.current = true;
             },
             onmessage: async (msg: LiveServerMessage) => {
                  const audioData = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
@@ -172,9 +180,13 @@ const SessionManager: React.FC<Props> = ({ mode, topic, onComplete, onCancel, on
             },
             onclose: () => {
                 console.log("Session Closed");
+                liveOpenRef.current = false;
+                // stop sending audio frames once closed
+                setStatus(prev => prev === SessionStatus.IN_PROGRESS ? SessionStatus.IDLE : prev);
             },
             onerror: (err) => {
                 console.error("Live API Error", err);
+                liveOpenRef.current = false;
                 // Only trigger error if we are not already finishing or cancelled
                 if (isMountedRef.current && statusRef.current !== SessionStatus.COMPLETED && statusRef.current !== SessionStatus.ANALYZING) {
                     onError("Connection to AI lost.");
@@ -199,15 +211,18 @@ const SessionManager: React.FC<Props> = ({ mode, topic, onComplete, onCancel, on
 
     processor.onaudioprocess = (e) => {
         // Use refs for safe access inside closure
-        if (!isMountedRef.current || statusRef.current !== SessionStatus.IN_PROGRESS) return;
+        if (!isMountedRef.current || statusRef.current !== SessionStatus.IN_PROGRESS || !liveOpenRef.current) return;
         
         const inputData = e.inputBuffer.getChannelData(0);
         const blob = createBlob(inputData);
 
         sessionPromise.then(session => {
+             if (!liveOpenRef.current) return;
              session.sendRealtimeInput({
                 media: blob
             });
+        }).catch(err => {
+            console.error("Failed to send audio to live session", err);
         });
     };
 

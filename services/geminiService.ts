@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { GoogleGenAI, Type, Modality, LiveCallbacks } from "@google/genai";
 import { ANALYSIS_SYSTEM_PROMPT } from "../constants";
 import { AssessmentReport, FeedbackMetric } from "../types";
 import { blobToBase64 } from "../utils/audioUtils";
@@ -179,11 +179,20 @@ export const generateFeedbackAudio = async (report: AssessmentReport): Promise<s
   return audioData;
 };
 
-export const createLiveSession = () => {
+export const createLiveSession = (callbacks?: Partial<LiveCallbacks>) => {
+   // Live API requires callbacks with at least onmessage defined
+   const defaultCallbacks: LiveCallbacks = {
+      onmessage: () => {},
+      onopen: () => {},
+      onclose: () => {},
+      onerror: () => {}
+   };
+
    return ai.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+      callbacks: { ...defaultCallbacks, ...(callbacks || {}) },
       config: {
-        responseModalities: ["AUDIO"],
+        responseModalities: [Modality.AUDIO],
         systemInstruction: "You are a friendly, encouraging English tutor helping a student practice conversation. Keep your responses relatively short (1-3 sentences) to encourage the user to speak more. Correct major errors gently in passing, but focus on maintaining the flow.",
       }
    });
